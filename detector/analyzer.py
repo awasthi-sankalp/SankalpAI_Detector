@@ -168,6 +168,14 @@ class Analyzer:
         dis_result   = analyze_discourse(text, sentences, words, lines)
         stat_result  = analyze_statistical(text, words, sentences, lines)
         code_result  = analyze_code_structure(text, lines, filepath.suffix)
+        
+        from detector.heuristics.line_analyzer import analyze_lines_deep
+        line_score, line_flagged = analyze_lines_deep(lines, filepath.suffix)
+        line_result = {
+            "score": line_score,
+            "flagged_lines": line_flagged,
+            "details": {"Line Density": f"net AI density mapped to {line_score}/100"}
+        }
 
         # -- 4. Aggregate score -------------------------------------------------------
         ext = filepath.suffix
@@ -177,6 +185,7 @@ class Analyzer:
             "statistical":    stat_result,
             "lexical":        lex_result,
             "code_structure": code_result,
+            "line_analyzer":  line_result,
         }
         composite = compute_composite_score(heuristic_results, ext)
 
@@ -186,6 +195,7 @@ class Analyzer:
             syn_result["flagged_lines"],
             stat_result["flagged_lines"],
             code_result["flagged_lines"],
+            line_result["flagged_lines"],
         )
 
         # If score is high but no lines were flagged, pick the 3 longest lines.

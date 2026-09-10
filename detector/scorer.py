@@ -27,17 +27,19 @@ CODE_EXTENSIONS = frozenset({
 
 # Category weights for PROSE files (text, markdown, etc.)
 PROSE_WEIGHTS = {
-    "discourse":      0.40,
+    "discourse":      0.35,
     "syntactic":      0.22,
     "statistical":    0.16,
     "lexical":        0.12,
-    "code_structure": 0.10,
+    "code_structure": 0.05,
+    "line_analyzer":  0.10,
 }
 
 # Category weights for standard CODE files (has comments/docstrings)
 CODE_WEIGHTS = {
-    "discourse":      0.45,
-    "code_structure": 0.30,
+    "discourse":      0.35,
+    "code_structure": 0.25,
+    "line_analyzer":  0.15,
     "syntactic":      0.12,
     "statistical":    0.08,
     "lexical":        0.05,
@@ -46,9 +48,10 @@ CODE_WEIGHTS = {
 # Category weights for TERSE CODE files (no comments, bare code)
 # Since discourse is 0, we distribute its weight to structural metrics
 TERSE_CODE_WEIGHTS = {
-    "code_structure": 0.55,   # Dominant signal: variables, typing, naming
-    "syntactic":      0.20,   # Line uniformity, burstiness
-    "statistical":    0.15,   # Token repetition
+    "code_structure": 0.40,   # Dominant signal: variables, typing, naming
+    "line_analyzer":  0.25,   # Line-by-line micro-patterns
+    "syntactic":      0.15,   # Line uniformity, burstiness
+    "statistical":    0.10,   # Token repetition
     "lexical":        0.10,
     "discourse":      0.00,   # Ignored
 }
