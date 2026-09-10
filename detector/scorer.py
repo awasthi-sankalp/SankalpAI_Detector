@@ -31,16 +31,26 @@ PROSE_WEIGHTS = {
     "syntactic":      0.22,
     "statistical":    0.16,
     "lexical":        0.12,
-    "code_structure": 0.10,   # still useful for inline code blocks
+    "code_structure": 0.10,
 }
 
-# Category weights for CODE files
+# Category weights for standard CODE files (has comments/docstrings)
 CODE_WEIGHTS = {
-    "discourse":      0.45,   # AI phrases in comments/docstrings
-    "code_structure": 0.30,   # identifier names, typing, docstrings -- strongest code signal
+    "discourse":      0.45,
+    "code_structure": 0.30,
     "syntactic":      0.12,
     "statistical":    0.08,
     "lexical":        0.05,
+}
+
+# Category weights for TERSE CODE files (no comments, bare code)
+# Since discourse is 0, we distribute its weight to structural metrics
+TERSE_CODE_WEIGHTS = {
+    "code_structure": 0.55,   # Dominant signal: variables, typing, naming
+    "syntactic":      0.20,   # Line uniformity, burstiness
+    "statistical":    0.15,   # Token repetition
+    "lexical":        0.10,
+    "discourse":      0.00,   # Ignored
 }
 
 
@@ -53,33 +63,26 @@ def compute_composite_score(
     file_extension: str = "",
 ) -> float:
     """
-    Combine category scores into a single 0–100 composite score.
-
-    Args:
-        heuristic_results: {
-            "discourse":   {"score": float, ...},
-            "syntactic":   {"score": float, ...},
-            "statistical": {"score": float, ...},
-            "lexical":     {"score": float, ...},
-            "code_structure": {"score": float, ...},
-        }
-        file_extension: e.g. ".py", ".txt"
-
-    Returns:
-        Composite score 0–100 (higher = more AI-like).
+    Calculate the weighted composite score based on file extension and
+    heuristic performance.
     """
-    weights = CODE_WEIGHTS.copy() if is_code_file(file_extension) else PROSE_WEIGHTS.copy()
-
-    # Dynamic re-weighting for comment-stripped code
-    if is_code_file(file_extension):
+    is_code = is_code_file(file_extension)
+    
+    if is_code:
         discourse_score = heuristic_results.get("discourse", {}).get("score", 0.0)
-        code_score = heuristic_results.get("code_structure", {}).get("score", 0.0)
-        
-        # If discourse is very low (e.g. comments stripped) but structure is high,
-        # shift reliance away from discourse and onto structure.
-        if discourse_score < 40 and code_score > 40:
-            weights["discourse"] -= 0.45
-            weights["code_structure"] += 0.45
+        # If the file has almost no discourse signals (e.g., no comments, no AI phrases)
+        # it is "terse code" and needs a specialized structural scoring profile.
+        if discourse_score <= 15.0:
+            weights = TERSE_CODE_WEIGHTS.copy()
+        else:
+            weights = CODE_WEIGHTS.copy()
+            # Dynamic re-weighting for comment-stripped code that still has some discourse
+            code_score = heuristic_results.get("code_structure", {}).get("score", 0.0)
+            if discourse_score < 40 and code_score > 40:
+                weights["discourse"] -= 0.20
+                weights["code_structure"] += 0.20
+    else:
+        weights = PROSE_WEIGHTS.copy()
 
     composite = 0.0
     for category, weight in weights.items():
@@ -87,12 +90,28 @@ def compute_composite_score(
         cat_score = result.get("score", 0.0)
         composite += weight * cat_score
 
+    # Boost score slightly if code is completely perfectly typed but undocumented
+    # (A very common AI pattern for generated scripts)
+    if is_code:
+        code_details = heuristic_results.get("code_structure", {}).get("details", {})
+        ta_density = code_details.get("Type Annotation Density", "")
+        ds_coverage = code_details.get("Docstring Coverage", "")
+        if "density=1.0" in ta_density and "coverage=0.0" in ds_coverage:
+            composite = min(100.0, composite * 1.15)  # 15% boost
+
     return round(composite, 2)
 
 
-def get_threshold(sensitivity: str) -> int:
-    """Map sensitivity level to score threshold (files above this are flagged)."""
-    return {"low": 72, "medium": 55, "high": 42}.get(sensitivity, 55)
+def get_threshold(sensitivity: str) -> float:
+    if sensitivity == "low":
+        return 72.0
+    elif sensitivity == "medium":
+        return 55.0
+    elif sensitivity == "high":
+        return 42.0
+    elif sensitivity == "paranoid":
+        return 25.0
+    return 55.0
 
 
 def grade_score(score: float) -> str:

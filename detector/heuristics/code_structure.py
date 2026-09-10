@@ -43,6 +43,9 @@ AI_IDENTIFIER_VOCAB = frozenset({
     "intermediate", "initial", "final", "default", "custom",
     "specified", "provided", "given", "expected", "actual",
     "converted", "parsed", "cleaned", "normalized", "sanitized",
+    # Generic nouns AI overuses
+    "data", "item", "record", "info", "element", "object", "model", "entity",
+    "details", "properties", "attributes", "options", "settings",
 })
 
 # Human short-form names that AI almost NEVER uses (except i,j,k loop vars)
@@ -170,13 +173,13 @@ def compute_identifier_length(
     long_idents = [i for i in identifiers if len(i) >= 15]
 
     # Human avg: 4-8; AI avg: 9-20
-    if mean_len >= 13:
+    if mean_len >= 10:
         score = 95.0
-    elif mean_len >= 10:
+    elif mean_len >= 8.5:
         score = 75.0
-    elif mean_len >= 8:
+    elif mean_len >= 7.5:
         score = 50.0
-    elif mean_len >= 6:
+    elif mean_len >= 6.5:
         score = 25.0
     else:
         score = 5.0
@@ -228,12 +231,12 @@ def compute_ai_vocab_in_identifiers(
 
     ratio = len(ai_hit_idents) / len(identifiers)
 
-    # Human: 0.05-0.15; AI: 0.25-0.60
-    if ratio >= 0.40:
+    # Human: 0.05-0.10; AI: 0.15-0.60
+    if ratio >= 0.25:
         score = 95.0
-    elif ratio >= 0.25:
+    elif ratio >= 0.18:
         score = 75.0
-    elif ratio >= 0.15:
+    elif ratio >= 0.12:
         score = 50.0
     elif ratio >= 0.08:
         score = 25.0
@@ -286,14 +289,14 @@ def compute_short_name_deficit(identifiers: list[str]) -> tuple[float, str]:
     )
     ratio = short_count / len(identifiers)
 
-    # Human: 0.10-0.30 short names; AI: 0.00-0.05
-    if ratio < 0.02:
+    # Human: 0.15-0.30 short names; AI: 0.00-0.10
+    if ratio < 0.05:
         score = 85.0
-    elif ratio < 0.05:
-        score = 65.0
     elif ratio < 0.10:
+        score = 65.0
+    elif ratio < 0.15:
         score = 40.0
-    elif ratio < 0.18:
+    elif ratio < 0.20:
         score = 20.0
     else:
         score = 5.0
@@ -317,7 +320,9 @@ def compute_naming_consistency(identifiers: list[str]) -> tuple[float, str]:
     if len(identifiers) < 10:
         return 0.0, "too few identifiers"
 
-    snake  = sum(1 for i in identifiers if "_" in i and i == i.lower())
+    # A single lowercase word (e.g. "data") is valid snake_case.
+    # We define snake_case as all lowercase.
+    snake  = sum(1 for i in identifiers if i == i.lower())
     camel  = sum(1 for i in identifiers if "_" not in i and any(c.isupper() for c in i[1:]))
     total  = len(identifiers)
 

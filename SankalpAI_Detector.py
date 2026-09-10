@@ -93,10 +93,10 @@ examples:
     )
     parser.add_argument(
         "--sensitivity", "-s",
-        choices=["low", "medium", "high"],
+        choices=["low", "medium", "high", "paranoid"],
         default="medium",
         metavar="LEVEL",
-        help="Detection sensitivity: low | medium (default) | high",
+        help="Detection sensitivity: low | medium (default) | high | paranoid",
     )
     parser.add_argument(
         "--ext",
