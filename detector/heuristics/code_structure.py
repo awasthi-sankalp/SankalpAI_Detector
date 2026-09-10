@@ -170,13 +170,13 @@ def compute_identifier_length(
     long_idents = [i for i in identifiers if len(i) >= 15]
 
     # Human avg: 4-8; AI avg: 9-20
-    if mean_len >= 14:
-        score = 90.0
-    elif mean_len >= 11:
-        score = 70.0
-    elif mean_len >= 9:
+    if mean_len >= 13:
+        score = 95.0
+    elif mean_len >= 10:
+        score = 75.0
+    elif mean_len >= 8:
         score = 50.0
-    elif mean_len >= 7:
+    elif mean_len >= 6:
         score = 25.0
     else:
         score = 5.0
@@ -229,13 +229,13 @@ def compute_ai_vocab_in_identifiers(
     ratio = len(ai_hit_idents) / len(identifiers)
 
     # Human: 0.05-0.15; AI: 0.25-0.60
-    if ratio >= 0.50:
-        score = 90.0
-    elif ratio >= 0.35:
-        score = 70.0
+    if ratio >= 0.40:
+        score = 95.0
     elif ratio >= 0.25:
-        score = 50.0
+        score = 75.0
     elif ratio >= 0.15:
+        score = 50.0
+    elif ratio >= 0.08:
         score = 25.0
     else:
         score = 5.0
@@ -533,13 +533,13 @@ def analyze_code_structure(
     cl_score, cl_detail              = compute_code_line_uniformity(lines)
 
     weights = {
-        "identifier_length":   0.18,
-        "ai_vocab":            0.22,
-        "short_name_deficit":  0.15,
-        "naming_consistency":  0.10,
-        "docstring_coverage":  0.12,
-        "error_handling":      0.10,
-        "type_annotations":    0.08,
+        "identifier_length":   0.25,
+        "ai_vocab":            0.25,
+        "short_name_deficit":  0.10,
+        "naming_consistency":  0.05,
+        "docstring_coverage":  0.15,
+        "error_handling":      0.05,
+        "type_annotations":    0.10,
         "line_uniformity":     0.05,
     }
     composite = (

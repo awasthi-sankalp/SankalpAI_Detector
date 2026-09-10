@@ -3,3 +3,4 @@
 
 nltk>=3.8.1          # sentence tokenization (punkt), word tokenization
 colorama>=0.4.6      # Windows ANSI colour support
+pyfiglet>=0.8.post1  # Big ASCII banner text

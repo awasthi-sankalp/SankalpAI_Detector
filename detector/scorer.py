@@ -37,10 +37,10 @@ PROSE_WEIGHTS = {
 # Category weights for CODE files
 CODE_WEIGHTS = {
     "discourse":      0.45,   # AI phrases in comments/docstrings
-    "code_structure": 0.25,   # identifier names, typing, docstrings -- strongest code signal
+    "code_structure": 0.30,   # identifier names, typing, docstrings -- strongest code signal
     "syntactic":      0.12,
     "statistical":    0.08,
-    "lexical":        0.10,
+    "lexical":        0.05,
 }
 
 
@@ -61,13 +61,25 @@ def compute_composite_score(
             "syntactic":   {"score": float, ...},
             "statistical": {"score": float, ...},
             "lexical":     {"score": float, ...},
+            "code_structure": {"score": float, ...},
         }
         file_extension: e.g. ".py", ".txt"
 
     Returns:
         Composite score 0–100 (higher = more AI-like).
     """
-    weights = CODE_WEIGHTS if is_code_file(file_extension) else PROSE_WEIGHTS
+    weights = CODE_WEIGHTS.copy() if is_code_file(file_extension) else PROSE_WEIGHTS.copy()
+
+    # Dynamic re-weighting for comment-stripped code
+    if is_code_file(file_extension):
+        discourse_score = heuristic_results.get("discourse", {}).get("score", 0.0)
+        code_score = heuristic_results.get("code_structure", {}).get("score", 0.0)
+        
+        # If discourse is very low (e.g. comments stripped) but structure is high,
+        # shift reliance away from discourse and onto structure.
+        if discourse_score < 40 and code_score > 40:
+            weights["discourse"] -= 0.45
+            weights["code_structure"] += 0.45
 
     composite = 0.0
     for category, weight in weights.items():
